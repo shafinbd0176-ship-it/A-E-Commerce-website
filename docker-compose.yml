@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: secondlife-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: secondlife_user
+      POSTGRES_PASSWORD: secondlife_password
+      POSTGRES_DB: secondlife_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/schema/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+    networks:
+      - secondlife-network
+
+  # Redis Cache & Session Store
+  redis:
+    image: redis:7-alpine
+    container_name: secondlife-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - secondlife-network
+
+  # Node.js Core REST API Gateway
+  backend:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.backend
+    container_name: secondlife-backend
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DB_DRIVER: postgres
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: secondlife_user
+      DB_PASSWORD: secondlife_password
+      DB_NAME: secondlife_db
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: production-secret-key-replace-in-env-32-chars
+      PAYMENT_PROVIDER: sandbox
+      PYTHON_RECOMMENDATION_SERVICE_URL: http://recommendation-service:8000
+    ports:
+      - "5000:5000"
+    networks:
+      - secondlife-network
+
+  # Python AI Recommendation Microservice
+  recommendation-service:
+    build:
+      context: ./services/python/recommendation_service
+      dockerfile: ../../../infrastructure/docker/Dockerfile.python
+    container_name: secondlife-recommendations
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    networks:
+      - secondlife-network
+
+  # React / Vite Frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.frontend
+    container_name: secondlife-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    networks:
+      - secondlife-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  secondlife-network:
+    driver: bridge

@@ -1,0 +1,21 @@
+{
+  "name": "second-life",
+  "version": "1.0.0",
+  "description": "SecondLife - Premium Sustainable Rebuilt & Repurposed Electronics E-Commerce Platform",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:python": "npm --prefix services/python/recommendation_service run dev",
+    "build": "npm --prefix backend run build && npm --prefix frontend run build",
+    "seed": "npm --prefix backend run seed",
+    "test": "npm --prefix backend run test",
+    "lint": "npm --prefix backend run lint && npm --prefix frontend run lint"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "author": "SecondLife Engineering Team",
+  "license": "MIT"
+}
